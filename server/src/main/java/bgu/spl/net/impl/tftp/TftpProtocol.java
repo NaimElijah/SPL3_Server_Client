@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
+import java.io.File;
 
 
 
@@ -221,21 +222,22 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 8){  //* handle DELRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 8 **
-            String packet_fileName = new String(message, 2, (message.length-3), StandardCharsets.UTF_8);
-            // see if this file name exists in Files
-            File f = new File("../../../../../../../../Files/" + packet_fileName);
-            boolean fExists = f.exists();
+                }else if(opcode == 8){  //* handle DELRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 8 **
+                    String packet_fileName = new String(message, 2, (message.length-3), StandardCharsets.UTF_8);
+                    // see if this file name exists in Files
+                    File f = new File("../../../../../../../../Files/" + packet_fileName);
+                    boolean fExists = f.exists();
 
-            if (fExists){
-                // delete that file and send a processed_message if needed
-                
+                    if (fExists){
+                        f.delete();
+                        // delete that file and send a processed_message if needed
+                        
 
-            }else{
-                processed_message = getErrPacket(1, "File not found");
-            }
+                    }else{
+                        processed_message = getErrPacket(1, "File not found");
+                    }
 
-            // TODO implement this
+                    // TODO implement this
 
 
 
