@@ -15,8 +15,6 @@ import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
-
-
 public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     private boolean shouldTerminate = false;
@@ -26,10 +24,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
     private byte[] processed_message; // added by me
     private boolean is_first = true; // added by me
     private short opcode; // added by me
-    private byte[] file_bytes; // added by me
     private short block_number; // added by me
-    private String err_msg; // added by me
     private boolean isBcast = false; // added by me
+
+    private byte[] file_bytes; // added by me  //TODO: Added by me, see if this way works out    <<--------------------------------
+    private int file_bytes_bookmark = 0; // added by me  //TODO: Added by me, see if this way works out    <<--------------------------------
+
+    private byte[] Data_LeftToSend;  //TODO: Added by me, see if this way works out    <<--------------------------------
+    private byte[] Data_ReceivedTillNow;  //TODO: Added by me, see if this way works out    <<--------------------------------
+    // maybe send 512(518 with others) data max and every time and the receiver keeps receiving until he gets something that isn't full, that isn't 512(518) bytes.
+    
 
 
     @Override
@@ -51,38 +55,67 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
         opc2BytesArr[1] = message[1];
         opcode = getShortFrom2ByteArr(opc2BytesArr);  // short opcode
 
-        processed_message = new byte[1 << 10]; //start with 1k      <-----  if a message back is needed right now
+        processed_message = new byte[1 << 10]; // just for initialization (1k)
         //        it seems like this same protocol will be in the server and client but each of them will probably get into different if's here.
 
 
-        //*======================================================>>>>  *** Start of the Different scenario handlings ***  <<<<======================================================*/
-        //*the processed_message is sent in this method after all these ifs.
-        if(opcode != 7 && is_first == true){  //* handle other command before login scenario, Client --->> Server  <<===================================================================  ** BOOKMARK !=7 **
+
+
+
+        //*======================================================>>>>  *** Start of the Different Scenario Handlings ***  <<<<======================================================*/
+        //* The processed_message is sent in this method after all these ifs.
+
+        if((opcode != 7) && (is_first == true) && (opcode > 0) && (opcode < 11)){  //* handle other command before login scenario, Server got this  <<===================================================================  ** BOOKMARK !=7 **
             // return an error to the client that he must use the LOGRQ command first.
             processed_message = getErrPacket(6, "Login Required first");
 
 
-        }else if(opcode == 1){  //* handle RRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 1 **
 
-            String packet_fileName = new String(message, 2, (message.length-3), StandardCharsets.UTF_8);  //TODO: do file stuff now where needed in these ifs.
+
+
+
+
+
+        }else if(opcode == 1){  //* handle RRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 1 **
+
+            String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
-            File f = new File("../../../../../../../../Files/" + packet_fileName);
+            File f = new File("./Files/" + packet_fileName);
             boolean fExists = f.exists();
 
             if (fExists){
                 int finished_reading;
-                // return a data packet of the file
-                file_bytes = new byte[(int)f.length()]; // maybe the length should be 512 like mentioned in the assignment  or  maybe we should take it all and divide later.
-                try {
-                    try(FileInputStream fis = new FileInputStream(f)){
-                        finished_reading = fis.read(file_bytes);   // do something with this int to know if the packet is full or not.   <<-----------------
-                    }
-                }catch(FileNotFoundException e){}catch(IOException e){}
 
-                processed_message = new byte[512+2+other thingslikeop,... --> check];  // creating the DATA packet to be sent
+                synchronized(connections.getFilesLock()){  // Lock the Files while we're reading from them
 
+                    // file_bytes = new byte[518];   //TODO: check this way out
+                    // maybe add to a ConcurrentLinkedQueue<byte[]> field   //TODO: check this way out
+                    // while(fis.read(file_bytes) != -1){}   //TODO: check this way out
+                    // file_bytes = new byte[512];   //TODO: check this way out
+                    // maybe add to a ConcurrentLinkedQueue<byte[]> field   //TODO: check this way out
+                    // and somewhere do connections.send to send and then when we get an ACK from the Client we can see what's remaining //TODO: check this way out, take some of the below code:
+                    
+
+                    file_bytes = new byte[(int)f.length()]; // maybe we should take it all and divide later.
+                    try {
+                        try(FileInputStream fis = new FileInputStream(f)){
+                            finished_reading = fis.read(file_bytes);   // do something with this int to know if the packet is full or not.   <<-----------------
+                        }            // now file_bytes contains all the file bytes
+                    }catch(FileNotFoundException e){}catch(IOException e){}
+
+                }
+
+                //TODO: return data packets of the file
                 // hedi said that we can send a maximum of 512 bytes at one time. So if it's bigger we need to split them and also send the block
                 // number with each part of the data, maybe this handling of block numbers is done in the handler's send.
+
+                if(finished_reading >= 518){
+                    //
+                }else{
+                    //
+                }
+
+                processed_message = new byte[512+6];  // creating the DATA packet to be sent
 
                 short returnOP_C = 3;
                 byte[] returnOP_C_in_byteArr = get2ByteArrFromShort(returnOP_C);
@@ -101,6 +134,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 processed_message = getErrPacket(1, "File not found");
             }
 
+
+            
             // do more stuff if needed
             // TODO implement this
 
@@ -112,7 +147,24 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 2){  //* handle WRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 2 **
+
+        }else if(opcode == 2){  //* handle WRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 2 **
+            // I think that here we need to first create a file with the name, send ACK and then get the DATA from the Client.
+
+
+
+            // we need to put all the bytes of data from the data packets we got into a buffer and only at the end sync the Files and write to Files within that sync
+            synchronized(connections.getFilesLock()){  // maybe lock the file while writing to it at the end
+                //
+            }
+            
+
+
+
+            processed_message = getBCASTPacket(1, put filenameeeeeeeeeeeeeeeeeeeeeeeeeeeee);  // notify all logged in users about the change
+            isBcast = true;
+
+            
             // do more stuff
             // TODO implement this
 
@@ -125,7 +177,12 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 3){  //* handle DATA scenario, Both ways   <<===================================================================  ** BOOKMARK 3 **
+
+
+        }else if(opcode == 3){  //* handle DATA scenario, Both get this   <<===================================================================  ** BOOKMARK 3 **
+
+            // maybe put all the DATA Packages in a byte buffer
+
             // do more stuff
             // TODO implement this
 
@@ -137,7 +194,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 4){  //* handle ACK scenario   <<===================================================================  ** BOOKMARK 4 **
+
+
+        }else if(opcode == 4){  //* handle ACK scenario, Both get this   <<===================================================================  ** BOOKMARK 4 **
             if(block_number >= 0 && file_bytes.length > 0){
                 // continue sending the next packet
             }else if(another scenario){
@@ -155,7 +214,49 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 5){  //* handle ERROR scenario,  Client <<--- Server   <<===================================================================  ** BOOKMARK 5 **
+
+
+
+        }else if(opcode == 5){  //* handle ERROR scenario,  Client gets this   <<===================================================================  ** BOOKMARK 5 **
+            byte[] errC2BytesArr = new byte[2];
+            errC2BytesArr[0] = message[2];
+            errC2BytesArr[1] = message[3];
+            short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
+
+            String err_msg = new String(message, 4, (message.length-4), StandardCharsets.UTF_8);  //  converting a byte[] to String
+            System.out.println("Error " + ErrC + " " + err_msg);
+
+
+
+
+
+
+
+
+
+        }else if(opcode == 6){  //* handle DIRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 6 **
+            
+            List<byte[]> FilesInDirInBytes = new ArrayList<byte[]>();
+            int len = 0;
+            File[] files = new File("./Files").listFiles();
+            for(File file : files){
+                if(file.isFile()){
+                    FilesInDirInBytes.add(file.getName().getBytes());
+                    len += file.getName().getBytes().length;
+                }
+            }
+
+
+            // we also need to send a DATA Package
+            if(len <= 512){  // or 518
+                //
+            }else{
+                //
+            }
+
+
+
+
             // do more stuff
             // TODO implement this
 
@@ -167,26 +268,14 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 6){  //* handle DIRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 6 **
-            // do more stuff
-            // TODO implement this
 
 
 
-
-
-
-
-
-
-
-        }else if(opcode == 7){  //* handle LOGRQ-login scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 7 **
+        }else if(opcode == 7){  //* handle LOGRQ-login scenario,  Server got this   <<===================================================================  ** BOOKMARK 7 **
             
             if(is_first){
-                // theres a method in java for converting a byte[] to string:
-                String packet_username = new String(message, 2, (message.length-3), StandardCharsets.UTF_8);
-                // check if the username is valid
-                boolean valid = true;
+                String packet_username = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);  //  converting a byte[] to String
+                boolean valid = true;  // check if the username is valid
                 for(ConnectionHandler<byte[]> handler : this.connections.getConnectedClients().values()){
                     if(handler.getProtocol().getUsername() == packet_username){
                         valid = false;
@@ -197,95 +286,66 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 if(valid){
                     this.username = packet_username;
                     connections.getConnectedClients().get(this.connectionId).setLoggedIn(true);
+                    processed_message = getACKPacket(0); // ACK to the Client that we received
                     is_first = false;
-                    // we need to return an ACK packet
-                    processed_message = getACKPacket(block number) // I think we need to put 0 in the arg, check in the assignment
                 }else{
-                    // replay an error that it's not a valid username(the username is already taken).
                     processed_message = getErrPacket(7, "Username already connected");
                 }
-                is_first = false;
             }else{
                 processed_message = getErrPacket(0, "Already logged in");  //  hedi said in the forum that we can do this if a client uses LOGRQ again when he's already logged in.
-            }
-
-
-            // TODO implement this
+            }   //                                                                     check again which error type to return.
 
 
 
 
 
-
-
-
-
-
-        }else if(opcode == 8){  //* handle DELRQ scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 8 **
-            String packet_fileName = new String(message, 2, (message.length-3), StandardCharsets.UTF_8);
+        }else if(opcode == 8){  //* handle DELRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 8 **
+            String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
-            File f = new File("../../../../../../../../Files/" + packet_fileName);
+            File f = new File("./Files/" + packet_fileName);
             boolean fExists = f.exists();
 
             if (fExists){
-                // delete that file and send a processed_message if needed
-                
-
+                // delete that file and send a BCAST processed_message
+                if(f.delete()){
+                    processed_message = getBCASTPacket(0, packet_fileName);  // notify all logged in users about the change
+                    isBcast = true;
+                }else{
+                    processed_message = getErrPacket(0, "Inner Deletion Fail");
+                }
             }else{
                 processed_message = getErrPacket(1, "File not found");
             }
 
-            // TODO implement this
+
+
+        }else if(opcode == 9){  //* handle BCAST scenario,  Client got this   <<===================================================================  ** BOOKMARK 9 **
+
+            // get the filename that was added/deleted and use it for the prints in the next lines
+            String packet_fileName = new String(message, 3, (message.length-3), StandardCharsets.UTF_8);  //  converting a byte[] to String
+
+            if(message[2] == (byte)1){  // added
+                System.out.println("BCAST add " + packet_fileName);  // each client printing to himself
+            }else{   // message[2] == (byte)0  // deleted
+                System.out.println("BCAST del " + packet_fileName);  // each client printing to himself
+            }
 
 
 
-
-
-
-
-
-
-
-
-        }else if(opcode == 9){  //* handle BCAST scenario,  Client <<--- Server   <<===================================================================  ** BOOKMARK 9 **
-            // do the op code byte, take code from methods I made
-            // op code bytes
-
-            // do the deleted(0) or added(1) byte and concat 1, take code from methods I made
-            if(message[2] == 1){  // added
-                //
-            } // else message[2] == 0 // deleted
-
-
-            //do the file name bytes and concat 2, take code from methods I made
-
-            // do the zero byte and concat 3, take code from methods I made
-
-
-            isBcast = true;
-
-            // do more stuff
-            // TODO implement this
-
-
-
-
-
-
-
-
-
-
-        }else if(opcode == 10){  //* handle DISC scenario,  Client --->> Server   <<===================================================================  ** BOOKMARK 10 **
+        }else if(opcode == 10){  //* handle DISC scenario,  Server got this   <<===================================================================  ** BOOKMARK 10 **
             shouldTerminate = true;
             connections.disconnect(connectionId);
-            // create an ACK packet with the method we made
-            processed_message = getACKPacket(block number) // I think we need to put 0 in the arg, check in the assignment
-            // do more stuff if needed
-            // TODO implement this
+            processed_message = getACKPacket(0);
+            
 
-
+        }else{  //  unknown op code inserted
+            processed_message = getErrPacket(4, "Unknown Op Code");
         }
+
+
+
+
+
 
 
 
@@ -322,6 +382,25 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
+
+    public byte[] getBCASTPacket(int addORdel, String Filename){
+        byte[] op_byte = get2ByteArrFromShort((short)9);
+        byte[] addORdelByte = new byte[1];
+        addORdelByte[0] = (byte)addORdel;  // *check if maybe another way of conversion is needed here, if this way doesn't work out
+        byte[] concat1 = getCombinedByteArray(op_byte, addORdelByte);  // concat so far, concat with more later
+
+        byte[] filename_bytes = Filename.getBytes();
+        byte[] concat2 = getCombinedByteArray(concat1, filename_bytes);  // concat so far
+        
+        byte[] zeroByte = new byte[1];
+        zeroByte[0] = (byte)0;
+        byte[] concat3 = getCombinedByteArray(concat2, zeroByte);
+        return concat3;
+    }
+
+
+
+
     public byte[] getACKPacket(int block_number){
         byte[] op_byte = get2ByteArrFromShort((short)4);
         byte[] block_num_bytes = get2ByteArrFromShort((short)block_number);
@@ -334,16 +413,13 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
     public byte[] getErrPacket(int errVal, String err_msg){
         byte[] op_byte = get2ByteArrFromShort((short)5);
         byte[] err_code_bytes = get2ByteArrFromShort((short)errVal);
-        // byte[] err_code_bytes = new byte[2];
-        // err_code_bytes[0] = (byte)0;
-        // err_code_bytes[1] = (byte)errVal;
         byte[] concat1 = getCombinedByteArray(op_byte, err_code_bytes);  // concat so far, concat with more later
 
         byte[] err_msg_bytes = err_msg.getBytes();
         byte[] concat2 = getCombinedByteArray(concat1, err_msg_bytes);  // concat so far, concat with more later if needed more
         
         byte[] zeroByte = new byte[1];
-        zeroByte[0] = (byte)0;
+        zeroByte[0] = (byte)0;  // *check if maybe another way of conversion is needed here, if this way doesn't work out
         byte[] concat3 = getCombinedByteArray(concat2, zeroByte);
         return concat3;
     }
@@ -364,6 +440,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
     public short getShortFrom2ByteArr(byte[] byte2arr){
+        // return (short)(((short) byte2arr[0]) << 8 | (short) (byte2arr[1]) & 0x00ff);    // hedi's 
         return ((short)(((short)(byte2arr[0] & 0xFF)) << 8 | (short)(byte2arr[1] & 0xFF)));
     }  //                                                                                       <<------------  conversions you gave us
 

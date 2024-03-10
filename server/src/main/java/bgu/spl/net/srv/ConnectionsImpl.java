@@ -7,15 +7,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ConnectionsImpl<T> implements Connections<T>{   // a kind of map of ConnectionHandler's, for example, it helps send() a number of ConnectionHandlers.
 
     private final ConcurrentHashMap<Integer, ConnectionHandler<T>> connected_clients = new ConcurrentHashMap<Integer, ConnectionHandler<T>>(); // this holds the ConnectionHandlers of connected clients.
+    private final Object FilesLock = new Object();
 
 
     public void connect(int connectionId, ConnectionHandler<T> handler){
         if(!(connected_clients.containsKey(connectionId))){
             connected_clients.put(connectionId, handler);
-        }else{
-            //  we need to make an error
         }
-        //
+        // else{
+        //     //  we might need to make an error
+        // }
+        // //
     }
 
 
@@ -49,9 +51,10 @@ public class ConnectionsImpl<T> implements Connections<T>{   // a kind of map of
         return connected_clients;
     }
 
-    // public void setConnectedClients(ConcurrentHashMap<Integer, ConnectionHandler<T>> the_new){
-    //     connected_clients = the_new;   //  not needed.
-    // }
+
+    public Object getFilesLock(){
+        return this.FilesLock;
+    }
 
 
 }
