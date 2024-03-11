@@ -28,16 +28,14 @@ public abstract class BaseServer<T> implements Server<T> {
 
     @Override
     public void serve(){
-        //TODO: we need to change this server accordingly so that it will:(hedi's words) use Connections and write the handlers, initialize the protocols as we want, etc.
-        //
 
         try (ServerSocket serverSock = new ServerSocket(port)) {
 			System.out.println("Server started");
 
             this.sock = serverSock; //just to be able to close
 
-            while (!Thread.currentThread().isInterrupted()) {      //   ====================>>    This is the main while loop that keeps the server running    <<====================
-                Socket clientSock = serverSock.accept();
+            while (!Thread.currentThread().isInterrupted()){      //   ====================>>    This is the main while loop that keeps the server running    <<====================
+                Socket clientSock = serverSock.accept();  // just waits for a connection.
 
                 BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(clientSock, encdecFactory.get(), protocolFactory.get());
 
@@ -45,7 +43,7 @@ public abstract class BaseServer<T> implements Server<T> {
                 connections.connect(id_count, handler);   // added by me
                 id_count++;  // added by me
 
-                execute(handler);
+                execute(handler);  // runs the connection handler.
             }
         } catch (IOException ex) {
         }

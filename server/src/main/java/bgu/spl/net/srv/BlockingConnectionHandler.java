@@ -52,22 +52,21 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
 
 
-
     @Override
-    public void send(T msg) {  // send back to the client  <<-----------------------
+    public void send(T msg) {  // send to the client  <<-----------------------
 
         try {
             if (msg != null) {
-                out.write(encdec.encode(msg));  // we might need to send in a couple of packages if it exceeds 512 bytes. mybe use a for loop for this
-                out.flush();   // hedi said that there might be a bug here, that there might need to be a wider check/oversee here, and that 'out' might not have been initialized yet in run(),
-            }                                     //   but can be fixed by ourselves(right order of things).    *I don't think that will be a problem, the run() will be executed already.*
-        } catch (IOException ex) {                // **he afterwards said that the bug might be that if 2 clients send together, the packets they send might intertwine, so check that, resolve.
-            ex.printStackTrace();                 // **we don't want 2 packets to mix with each other, see that that doesn't happen. We need to do something in this method to take care of this.
-        }                                         //                                                                           **using synchronization or a data structure or ....
-        //                                                                                     * he said the sync is per client.(because every client has his seperate handler's thread).
+                out.write(encdec.encode(msg));
+                out.flush();
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
 
-        //TODO: IMPLEMENT IF NEEDED           <<-----------------------------  * THIS WILL BE NEEDED !! *
     }
+
+
 
 
 
@@ -80,10 +79,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
 
 
-
-
-
-
     public boolean getLoggedIn(){
         return logged_in;
     }
@@ -91,8 +86,6 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     public void setLoggedIn(boolean bool){
         logged_in = bool;
     }
-
-
 
 
     @Override

@@ -14,10 +14,6 @@ public class ConnectionsImpl<T> implements Connections<T>{   // a kind of map of
         if(!(connected_clients.containsKey(connectionId))){
             connected_clients.put(connectionId, handler);
         }
-        // else{
-        //     //  we might need to make an error
-        // }
-        // //
     }
 
 

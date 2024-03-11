@@ -59,7 +59,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
             Size_bytesArr[0] = first_Size_byte;
             Size_bytesArr[1] = nextByte;
             Packet_length = getShortFrom2ByteArr(Size_bytesArr);  //  to get the DATA size
-            Packet_length += 5;
+            Packet_length += 5;  // for the 6 opening bytes of DATA
         }
 
 
