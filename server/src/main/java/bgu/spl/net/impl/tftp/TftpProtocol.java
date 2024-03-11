@@ -49,7 +49,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
         shouldTerminate = false;
         this.connectionId = connectionId;
         this.connections = connections;
-        // more if needed
     }
 
 
@@ -57,7 +56,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     @Override
     public void process(byte[] message){
-        // it seems like, when we need to access the Files, we need to access .\Files
         byte[] opc2BytesArr = new byte[2];
         opc2BytesArr[0] = message[0];
         opc2BytesArr[1] = message[1];

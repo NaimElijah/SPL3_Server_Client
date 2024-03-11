@@ -17,6 +17,7 @@ public abstract class BaseServer<T> implements Server<T> {
     private ConnectionsImpl connections;    //* <<-----------------------  keeps all the connected clients
     private Integer id_count;
 
+
     public BaseServer(int port, Supplier<BidiMessagingProtocol<T>> protocolFactory, Supplier<MessageEncoderDecoder<T>> encdecFactory){
         this.port = port;
         this.protocolFactory = protocolFactory;
@@ -25,6 +26,8 @@ public abstract class BaseServer<T> implements Server<T> {
         this.connections = new ConnectionsImpl<byte[]>();  // added by me
         id_count = 0;  // added by me
     }
+
+
 
     @Override
     public void serve(){
@@ -51,6 +54,7 @@ public abstract class BaseServer<T> implements Server<T> {
         System.out.println("server closed!!!");
     }
 
+    
     @Override
     public void close() throws IOException {
 		if (sock != null)
