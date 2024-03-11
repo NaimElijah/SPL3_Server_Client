@@ -259,17 +259,17 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
         }else if(opcode == 5){  //! ERROR scenario,  Client gets this, Server doesn't get Error   <<===================================================================  ** BOOKMARK 5 **
             
-            //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code{
-            byte[] errC2BytesArr = new byte[2];
-            errC2BytesArr[0] = message[2];
-            errC2BytesArr[1] = message[3];
-            short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
-            //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code
-            String err_msg = new String(message, 4, (message.length-4), StandardCharsets.UTF_8);  //  converting a byte[] to String
-            System.out.println("Error " + ErrC + " " + err_msg);
+            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code{
+            // byte[] errC2BytesArr = new byte[2];
+            // errC2BytesArr[0] = message[2];
+            // errC2BytesArr[1] = message[3];
+            // short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
+            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code
+            // String err_msg = new String(message, 4, (message.length-4), StandardCharsets.UTF_8);  //  converting a byte[] to String
+            // System.out.println("Error " + ErrC + " " + err_msg);
 
-            //?  Server doesn't get an ERROR but did this just because...
-            //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code}
+            // //?  Server doesn't get an ERROR but did this so he won't do anything for now but: (below line)
+            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code}
 
 
 
@@ -382,7 +382,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
         }else if(opcode == 9){  //! BCAST scenario,  Client gets this, Server DOESN'T get this   <<===================================================================  ** BOOKMARK 9 **
 
-            //TODO:    DELETE THIS,  the Server doesn't get BCAST, maybe we should also Delete this if so it will go to the Section where unknown op code
+            //TODO:    DELETE THIS !!!  the Server doesn't get BCAST, maybe we should also Delete this if so it will go to the Section where unknown op code
             // get the filename that was added/deleted and use it for the prints in the next lines
 
             // String packet_fileName = new String(message, 3, (message.length-3), StandardCharsets.UTF_8);  //  converting a byte[] to String
