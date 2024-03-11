@@ -31,7 +31,7 @@ public class ConnectionsImpl<T> implements Connections<T>{   // a kind of map of
 
 
     public void disconnect(int connectionId){
-        ConnectionHandler handler_removed = connected_clients.remove(connectionId);
+        ConnectionHandler<T> handler_removed = connected_clients.remove(connectionId);
 
         // handler_removed.setLoggedIn(false);  // already done in the close() below
         try { handler_removed.close(); } catch (IOException e) {}
@@ -53,4 +53,35 @@ public class ConnectionsImpl<T> implements Connections<T>{   // a kind of map of
     }
 
 
+
+public byte[] getErrPacket(int errVal, String err_msg){
+    byte[] op_byte = get2ByteArrFromShort((short)5);
+    byte[] err_code_bytes = get2ByteArrFromShort((short)errVal);
+    // byte[] err_code_bytes = new byte[2];
+    // err_code_bytes[0] = (byte)0;
+    // err_code_bytes[1] = (byte)errVal;
+    byte[] concat1 = getCombinedByteArray(op_byte, err_code_bytes);  // concat so far, concat with more later
+
+    byte[] err_msg_bytes = err_msg.getBytes();
+    byte[] concat2 = getCombinedByteArray(concat1, err_msg_bytes);  // concat so far, concat with more later if needed more
+    
+    byte[] zeroByte = new byte[1];
+    zeroByte[0] = (byte)0;
+    byte[] concat3 = getCombinedByteArray(concat2, zeroByte);
+    return concat3;
 }
+public short getShortFrom2ByteArr(byte[] byte2arr){
+    return ((short)(((short)(byte2arr[0] & 0xFF)) << 8 | (short)(byte2arr[1] & 0xFF)));
+}  //                                                                                       <<------------  conversions you gave us
+
+public byte[] get2ByteArrFromShort(short shortNum){
+    return (new byte[]{(byte)(shortNum >> 8), (byte)(shortNum & 0xff)});  // might be without the "="
+}
+
+public byte[] getCombinedByteArray(byte[] a, byte[] b){
+    byte[] c = new byte[a.length + b.length];
+    System.arraycopy(a, 0, c, 0, a.length);
+    System.arraycopy(b, 0, c, a.length, b.length);
+    return c;
+} 
+}   
