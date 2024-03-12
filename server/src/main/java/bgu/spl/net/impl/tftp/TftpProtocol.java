@@ -81,13 +81,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
         }else if(opcode == 1){  //* handle RRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 1 **
-
+            
             String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
             File f = new File(ServerDir + packet_fileName);
             boolean fExists = f.exists();
 
             if(fExists){
+
+                // connections.send(this.connectionId, getACKPacket(0));   // see if we need to send an ACK first. seems that no
+
                 int finished_reading = 512;
                 try{
                     try(FileInputStream fis = new FileInputStream(f)){
@@ -191,6 +194,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                     }
                 }    // now we wrote all the DATA the client gave us that was in the byte buffer, to the file.
 
+                Data_ReceivedTillNow_Buffer = new byte[0];  // reset
 
                 connections.send(this.connectionId, getACKPacket(getShortFrom2ByteArr(Arrays.copyOfRange(message, 4, 6))));
                 processed_message = getBCASTPacket(1, Name_of_File_Created);  // notify all logged in users about the change
@@ -380,22 +384,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
             }
 
 
-
-        }else if(opcode == 9){  //! BCAST scenario,  Client gets this, Server DOESN'T get this   <<===================================================================  ** BOOKMARK 9 **
-
-            //TODO:    DELETE THIS !!!  the Server doesn't get BCAST, maybe we should also Delete this if so it will go to the Section where unknown op code
-            // get the filename that was added/deleted and use it for the prints in the next lines
-
-            // String packet_fileName = new String(message, 3, (message.length-3), StandardCharsets.UTF_8);  //  converting a byte[] to String
-
-            // if(message[2] == (byte)1){  // added
-            //     System.out.println("BCAST add " + packet_fileName);  // each client printing to himself                 <<-------------  should be in the Client Side.
-            // }else{   // message[2] == (byte)0  // deleted
-            //     System.out.println("BCAST del " + packet_fileName);  // each client printing to himself
-            // }
-
-
-
+        // 9 BCAST is only received by the client.
         }else if(opcode == 10){  //* handle DISC scenario,  Server got this   <<===================================================================  ** BOOKMARK 10 **
             processed_message = getACKPacket(0);  // when the client gets this ACK he will close the socket and exit the client program, I think he will also just interrupt
             connections.disconnect(connectionId);                                                  // the threads maybe or just make a boolean in the run()'s while to exit while.

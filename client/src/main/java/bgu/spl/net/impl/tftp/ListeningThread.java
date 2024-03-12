@@ -4,10 +4,15 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ListeningThread implements Runnable{
 
@@ -20,12 +25,27 @@ public class ListeningThread implements Runnable{
     private Socket Servers_Socket;
     private TftpEncoderDecoder encdec;
     private Thread keyboardThread;
-    private volatile String last_Command;  // if needed later, change this to a queue so mutable and shared with the Keyborad Thread.
+
+    private volatile String[] last_Command;  // to save a shared info of the last command for both threads.
+    private volatile String[] curr_fileName;  // to save a shared info of the last command for both threads.
+
+    private String ClientDir = ".\\";   //TODO:    remember to change it back to one \ for the linux assignment check.
+
+    private byte[] file_bytes; // byte BUFFER WHEN CLIENT READS FROM HIS Files
+    private ConcurrentLinkedQueue<byte[]> DATA_parts_to_Send = new ConcurrentLinkedQueue<byte[]>();  //? <<---------------- for WRITING to the server.
+    private short Block_Number_Count = 0;
+    // * send 512(518 with others) data max every time and the receiver keeps receiving until he gets something that isn't full, that isn't 512(518) bytes.
+
+    private String Name_of_File_Created;
+    private byte[] Data_ReceivedTillNow_Buffer = new byte[0];  //? <<---------------- for READING from the server.
+    // * keep all the bytes received in the buffer until we get something that isn't full, that isn't 512(518) bytes, add it as well and then write it all into the Files of the Client.
 
 
     public ListeningThread(Socket s, TftpEncoderDecoder ende){
         this.Servers_Socket = s;
         this.encdec = ende;
+        this.last_Command = new String[1];
+        this.curr_fileName = new String[1];
     }
 
 
@@ -35,7 +55,7 @@ public class ListeningThread implements Runnable{
     @Override
     public void run(){
         
-        KeyboardThread to_write = new KeyboardThread(Servers_Socket, this.last_Command);  // remember this is a runnable object.
+        KeyboardThread to_write = new KeyboardThread(Servers_Socket, this.last_Command, this.curr_fileName);  // remember this is a runnable object.
         keyboardThread = new Thread(to_write, "Keyboard Thread");  // this is the Keyboard Thread.
         keyboardThread.start();  //   <<------------------   and this is the Keyboard Thread's start up.
 
@@ -65,6 +85,8 @@ public class ListeningThread implements Runnable{
 
 
 
+
+
     public void Client_process(byte[] message){
 
         byte[] opc2BytesArr = new byte[2];
@@ -75,20 +97,193 @@ public class ListeningThread implements Runnable{
         byte[] message_back_to_Server = new byte[0];  // just for initialization, set it up according to what we want to send back to the server if want to send something back to the Server.
 
 
-        if(opcode == 3){   //*  got a DATA Packet from the Server
-            //
+
+
+        if(opcode == 3){   //*  got a DATA Packet from the Server,  ------------->>  don't forget to print out that "command Completed" where needed.
+
+            // get the DATA byte[]:
+            byte[] the_data = Arrays.copyOfRange(message, 6, message.length);
+
+            if(the_data.length >= 512){
+                // we got a full DATA Packet, add the DATA byte[] to the buffer field
+                Data_ReceivedTillNow_Buffer = getCombinedByteArray(Data_ReceivedTillNow_Buffer, the_data);
+            }else{
+                // this is the LAST DATA Packet, add it to the buffer field:
+                Data_ReceivedTillNow_Buffer = getCombinedByteArray(Data_ReceivedTillNow_Buffer, the_data);
+
+                // check if the DATA is for DIRQ\RRQ according to the last_Command:
+
+                if(last_Command[0] == "DIRQ"){
+                    // turn the Data_ReceivedTillNow_Buffer into a String and print the String without the 0's
+                    String string_form_with_zeros = new String(Data_ReceivedTillNow_Buffer, 0, Data_ReceivedTillNow_Buffer.length, StandardCharsets.UTF_8);
+                    String[] to_print = string_form_with_zeros.split("0");
+                    for(String filename : to_print){
+                        System.out.println(filename);
+                    }
+
+
+                }else if(last_Command[0] == "RRQ"){
+                    
+                    try{
+                        //create file with the Name_of_File_Created name inside the Dir:
+                        File f = new File(ClientDir + curr_fileName[0]);
+                        boolean created = f.createNewFile();
+    
+                        // write all the bytes from the buffer field to the file we just created:
+                        FileOutputStream fos = new FileOutputStream(ClientDir + curr_fileName[0]);
+                        fos.write(Data_ReceivedTillNow_Buffer);
+                        fos.close();
+    
+                    }catch(IOException e){
+                        e.printStackTrace();
+                    }
+                    // now we wrote all the DATA the client gave us that was in the byte buffer, to the file.
+                    System.out.println("RRQ " + this.curr_fileName[0] + " complete");
+
+                }
+                Data_ReceivedTillNow_Buffer = new byte[0];
+
+            }
+
+            message_back_to_Server = getACKPacket(getShortFrom2ByteArr(Arrays.copyOfRange(message, 4, 6)));  // send ACK.
+            should_write_back = true;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        }else if(opcode == 4){   //*  got a ACK Packet from the Server, probably we should send a DATA Packet conataining (filebytes)\(filenames) and check what was the last_Command, to know
+            //                                                                                                                                                                  what to do.
+            //                          ------------->>  don't forget to print out that "command Completed" where needed.   <<--------------------------------
+            if(last_Command[0] == "DISC"){
+                should_terminate = true;  // to terminate the while in the run()
+
+            }else if(last_Command[0] == "WRQ"){
+                if(DATA_parts_to_Send.isEmpty()){  // we got an ACK for the last DATA we already sent
+                    System.out.println("WRQ " + this.curr_fileName[0] + " complete");
+                }else{
+                    // send the next part of data from the sending queue
+
+
+                    message_back_to_Server = getDataPacket(packet size, block number, data part);
+                    should_write_back = true;
+                }
+
+
+
+
+
+
+
+            }else if(last_Command[0] == "RRQ"){  //! not needed because in RRQ's case, the client doesn't get any ACK's when RRQ's the command.
+
+            }else if(last_Command[0] == ""){
+                //
+
+
+
+
+
+
+
+            }
 
             // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
-        }else if(opcode == 4){   //*  got a ACK Packet from the Server
-            //
+
+
+
+
+
+
+
+
+            
+        }else if(opcode == 5){   //*  got a ERROR Packet from the Server
+
+            // print the ERROR msg in this client:
+            byte[] errC2BytesArr = new byte[2];
+            errC2BytesArr[0] = message[2];
+            errC2BytesArr[1] = message[3];
+            short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
+            System.out.println("Error " + ErrC);  // printed only this, you said that you only check the error code and the msg is for us.
+
+
+
+            // and do stuff that needs to be done:
+
+            if(last_Command[0] == "RRQ"){
+                // delete the file we created
+                File f = new File(ClientDir + this.curr_fileName[0]);
+                f.delete();
+            }else if(last_Command[0] == "DELRQ"){
+                // only the print above
+            }else if(last_Command[0] == "WRQ"){
+                // 
+            }else if(last_Command[0] == ""){
+                //
+            }
+
 
             // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
-        }else if(opcode == ){   //*  got a SOME X Packet from the Server
-            //
 
-            // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
-        }else if(opcode == ){   //*  got a SOME X Packet from the Server
-            //
+
+
+
+
+
+
+
+
+
+
+        }else if(opcode == 9){   //*  got a BCAST Packet from the Server
+            // print the BCAST msg in this client BCAST add/del filename
+
+            // get the filename that was added/deleted and use it for the prints in the next lines
+
+            String packet_fileName = new String(message, 3, (message.length-3), StandardCharsets.UTF_8);  //  converting a byte[] to String
+
+            if(message[2] == (byte)1){  // added
+                System.out.println("BCAST add " + packet_fileName);
+            }else{   // message[2] == (byte)0  // deleted
+                System.out.println("BCAST del " + packet_fileName);
+            }
+
+            should_write_back = false;
+
+
+
+
+
+
+
+
+
+
+            
+        }else if(opcode == ){   //*  got a X Packet from the Server
+            // print the BCAST msg in this client BCAST add/del filename
+
+
+
+
+
+
+
+
+
+
+
 
             // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
         }
@@ -102,11 +297,26 @@ public class ListeningThread implements Runnable{
 
 
         if(should_write_back){
-            out.write(packet to return to the server);
-            out.flush();
-            should_write_back = false; // set it back again
+            try {
+                out.write(message_back_to_Server);
+                out.flush();
+                should_write_back = false; // set it back
+            } catch (IOException e) { e.printStackTrace(); }
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -126,7 +336,6 @@ public class ListeningThread implements Runnable{
         byte[] concat3 = getCombinedByteArray(concat2, Data_Part);  // concat so far
         return concat3;
     }
-
 
     public byte[] getACKPacket(int block_number){
         byte[] op_byte = get2ByteArrFromShort((short)4);

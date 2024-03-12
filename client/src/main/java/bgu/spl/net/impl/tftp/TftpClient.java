@@ -42,6 +42,12 @@ public class TftpClient {
         
         // Keyboard Thread is started by the Listening Thread
 
+        //? maybe we'll need a while loop here to keep it running   <<--------------------------------------- or maybe just use .join()
+        try {
+            listeningThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
 
 
