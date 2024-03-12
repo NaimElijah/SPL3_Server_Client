@@ -5,8 +5,12 @@ import bgu.spl.net.srv.Server;
 
 public class TftpServer {
 
-    public static void main(String[] args){    //TODO: take arguments from maven, I think we need to take the port.(args[0/1]).
-        Server.threadPerClient(7777, () -> new TftpProtocol(), TftpEncoderDecoder::new).serve();
+    public static void main(String[] args){
+        try{
+            Server.threadPerClient(Integer.parseInt(args[0]), () -> new TftpProtocol(), TftpEncoderDecoder::new).serve();
+        }catch(NumberFormatException e){
+            e.printStackTrace();
+        }
 
 
     }

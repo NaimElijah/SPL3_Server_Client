@@ -56,12 +56,13 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     @Override
     public void process(byte[] message){
+        
         byte[] opc2BytesArr = new byte[2];
         opc2BytesArr[0] = message[0];
         opc2BytesArr[1] = message[1];
         opcode = getShortFrom2ByteArr(opc2BytesArr);  // short opcode
 
-        processed_message = new byte[1 << 10]; // just for initialization (1k)
+        processed_message = new byte[0]; // just for initialization
 
 
 
