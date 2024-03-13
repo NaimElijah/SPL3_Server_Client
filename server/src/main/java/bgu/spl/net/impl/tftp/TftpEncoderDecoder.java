@@ -23,7 +23,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
     @Override
     public byte[] decodeNextByte(byte nextByte) {     // if I'm using \n it might need to be \r because it's Windows
-        //TODO:   here utf8 is a bit different than linux's, remember to check on the lab computers. for there and for the assignment check, change the \r(windows) back to \n(linux).
+        //TODO: here utf8 is a bit different than linux's, remember to check on the lab computers. for there and for the assignment check, change the \r(windows) back to \n(linux).
 
         if(ByteCounter == 0){
             first_op_byte = nextByte;

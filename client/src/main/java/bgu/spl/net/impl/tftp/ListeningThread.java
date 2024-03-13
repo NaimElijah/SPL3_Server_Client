@@ -39,7 +39,6 @@ public class ListeningThread implements Runnable{
     private short Block_Number_Count = 0;
     // * send 512(518 with others) data max every time and the receiver keeps receiving until he gets something that isn't full, that isn't 512(518) bytes.
 
-    private String Name_of_File_Created;
     private byte[] Data_ReceivedTillNow_Buffer = new byte[0];  //? <<---------------- for READING from the server.
     // * keep all the bytes received in the buffer until we get something that isn't full, that isn't 512(518) bytes, add it as well and then write it all into the Files of the Client.
 
@@ -80,6 +79,13 @@ public class ListeningThread implements Runnable{
         }
 
         keyboardThread.interrupt();  //  if we got a ACK after we made a DISC we'll change the should_terminate to true
+
+        // try{
+        //     this.Servers_Socket.close();  // close the socket because this will end
+        // }catch(IOException e){
+        //     e.printStackTrace();
+        // }
+
     }
 
 
@@ -105,7 +111,7 @@ public class ListeningThread implements Runnable{
         if(opcode == 3){   //*  got a DATA Packet from the Server,  ------------->>  don't forget to print out that "command Completed" where needed.
 
             // get the DATA byte[]:
-            byte[] the_data = Arrays.copyOfRange(message, 6, message.length);
+            byte[] the_data = Arrays.copyOfRange(message, 6, message.length);  //!  6 > 2   check why 2 bytes were given instead of 6  <<===============================  resolve this.
 
             if(the_data.length >= 512){
                 // we got a full DATA Packet, add the DATA byte[] to the buffer field

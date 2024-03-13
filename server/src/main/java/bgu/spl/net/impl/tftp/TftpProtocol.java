@@ -56,6 +56,12 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     @Override
     public void process(byte[] message){
+
+        System.out.println("current Packet received is below:");  //!  TESTING !!
+        for(byte b : message){
+            System.out.println(b);  //!  TESTING !!
+        }
+        System.out.println("end of the current Packet received");  //!  TESTING !!
         
         byte[] opc2BytesArr = new byte[2];
         opc2BytesArr[0] = message[0];
@@ -250,7 +256,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 }else{  // DATA_parts_to_Send is empty, this is the last ACK for the last DATA Packet. other side already knows from the DATA handling if that he got the last one.
                     Block_Number_Count = 0;
                 }
-                
+
             }
 
 
@@ -329,6 +335,12 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
             if(dataPart == null){
                 dataPart = new byte[0];
             }
+
+            System.out.println("current FIRST DATA Packet in DIRQ is below:");  //!  TESTING !!
+            for(byte b : getDataPacket(dataPart.length, Block_Number_Count, dataPart)){
+                System.out.println(b);  //!  TESTING !!               <<===============================================  continue solving !!!!
+            }
+            System.out.println("end of the current FIRST DATA Packet in the DIRQ");  //!  TESTING !!
 
             processed_message = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
 

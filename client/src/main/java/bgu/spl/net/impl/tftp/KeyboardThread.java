@@ -64,7 +64,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-
+    
 
 
 
@@ -75,11 +75,13 @@ public class KeyboardThread implements Runnable{
 
         String[] UserInput_split = UserInput.split(" ");
 
-        byte[] command_packet = new byte[0];  // build this command to be a packet according to what we got.
+        System.out.println("UserInput_split[0] ----> " + UserInput_split[0]);  //! TEST !!!
+
+        byte[] command_packet = new byte[2];  // build this command to be a packet according to what we got.
 
 
         //                                 //*  turning command to packet:
-        if(UserInput_split[0] == "LOGRQ"){
+        if(UserInput_split[0].equals("LOGRQ")){
             last_Command[0] = UserInput_split[0];
 
             byte[] op_2bytes = get2ByteArrFromShort((short)7);
@@ -95,7 +97,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-        }else if(UserInput_split[0] == "DELRQ"){
+        }else if(UserInput_split[0].equals("DELRQ")){
             last_Command[0] = UserInput_split[0];
 
             byte[] op_2bytes = get2ByteArrFromShort((short)8);
@@ -112,7 +114,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-        }else if(UserInput_split[0] == "RRQ"){
+        }else if(UserInput_split[0].equals("RRQ")){
             // check if the File exists
             File f = new File(ClientDir + UserInput_split[1]);
             boolean fExists = f.exists();
@@ -145,7 +147,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-        }else if(UserInput_split[0] == "WRQ"){
+        }else if(UserInput_split[0].equals("WRQ")){
             // check if the File exists
             File f = new File(ClientDir + UserInput_split[1]);
             boolean fExists = f.exists();
@@ -174,7 +176,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-        }else if(UserInput_split[0] == "DIRQ"){
+        }else if(UserInput_split[0].equals("DIRQ")){
             last_Command[0] = UserInput_split[0];
             
             byte[] op_2bytes = get2ByteArrFromShort((short)6);
@@ -182,7 +184,7 @@ public class KeyboardThread implements Runnable{
 
 
 
-        }else if(UserInput_split[0] == "DISC"){
+        }else if(UserInput_split[0].equals("DISC")){
             last_Command[0] = UserInput_split[0];
 
             byte[] op_2bytes = get2ByteArrFromShort((short)10);
@@ -195,12 +197,17 @@ public class KeyboardThread implements Runnable{
 
 
         if((command_packet != null) && (command_packet.length > 0)){     //  about to send to the Server.
-            try{
-                out.write(command_packet);
-                out.flush();
-            }catch(IOException e){
-                e.printStackTrace();
-            }
+                try{
+                    for(byte b : command_packet){
+                        System.out.println(b);  //!  TESTING !!
+                    }
+                    // System.out.println(command_packet.toString());  //!  TESTING !!
+                    System.out.println("current command length -----> " + command_packet.length);  //!  TESTING !!
+                    out.write(command_packet);
+                    out.flush();
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
         }
 
 

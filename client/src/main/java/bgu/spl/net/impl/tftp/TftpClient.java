@@ -30,6 +30,7 @@ public class TftpClient {
         Socket Servers_socket = new Socket(); // just for initialization
         try{
             Servers_socket = new Socket(args[0], Integer.parseInt(args[1]));  //  creating the socket of the server that we'll READ FROM && WRITE TO.
+            // Servers_socket = new Socket("localhost", 7777);  //  creating the socket of the server that we'll READ FROM && WRITE TO. // TEST
         }catch(NumberFormatException e){
             e.printStackTrace();
         }
@@ -42,7 +43,7 @@ public class TftpClient {
         
         // Keyboard Thread is started by the Listening Thread
 
-        
+
 
         // //? maybe we'll need a while loop here to keep it running   <<--------------------------------------- or maybe just use .join()
         // try {

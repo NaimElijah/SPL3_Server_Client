@@ -39,7 +39,6 @@ public abstract class BaseServer<T> implements Server<T> {
 
             while (!Thread.currentThread().isInterrupted()){      //   ====================>>    This is the main while loop that keeps the server running    <<====================
                 Socket clientSock = serverSock.accept();  // just waits for a connection.
-
                 BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(clientSock, encdecFactory.get(), protocolFactory.get());
 
                 handler.getProtocol().start(id_count, connections);  // added by me
