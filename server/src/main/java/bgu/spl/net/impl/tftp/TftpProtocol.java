@@ -89,7 +89,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
             if(fExists){
 
-                // connections.send(this.connectionId, getACKPacket(0));   // see if we need to send an ACK first. seems that no
+                // connections.send(this.connectionId, getACKPacket(0));   // see if we need to send an ACK first. seems that no.
 
                 int finished_reading = 512;
                 try{
@@ -101,8 +101,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                                     finished_reading = fis.read(file_bytes);   // this int let's us know if the packet is full or not.
                                 }catch(FileNotFoundException e){}catch(IOException e){}
 
-                                if(finished_reading > 0){
-                                    DATA_parts_to_Send.add(file_bytes);
+                                if(finished_reading >= 0){
+                                    DATA_parts_to_Send.add(Arrays.copyOfRange(file_bytes, 0, finished_reading));
+                                }else if(finished_reading == -1){
+                                    DATA_parts_to_Send.add(new byte[0]);
                                 }
                             }   //  *now the DATA_parts_to_Send has all the data parts of the DATA Packets we'll need to send.
                         }
@@ -248,6 +250,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 }else{  // DATA_parts_to_Send is empty, this is the last ACK for the last DATA Packet. other side already knows from the DATA handling if that he got the last one.
                     Block_Number_Count = 0;
                 }
+                
             }
 
 

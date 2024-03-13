@@ -5,6 +5,8 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -18,6 +20,7 @@ public class ListeningThread implements Runnable{
 
     private boolean should_terminate = false;
     private boolean should_write_back = false;
+    private boolean is_first = true;  // for WRQ in the Client_process
 
     private BufferedInputStream in;
     private BufferedOutputStream out;
@@ -113,6 +116,7 @@ public class ListeningThread implements Runnable{
 
                 // check if the DATA is for DIRQ\RRQ according to the last_Command:
 
+
                 if(last_Command[0] == "DIRQ"){
                     // turn the Data_ReceivedTillNow_Buffer into a String and print the String without the 0's
                     String string_form_with_zeros = new String(Data_ReceivedTillNow_Buffer, 0, Data_ReceivedTillNow_Buffer.length, StandardCharsets.UTF_8);
@@ -120,6 +124,8 @@ public class ListeningThread implements Runnable{
                     for(String filename : to_print){
                         System.out.println(filename);
                     }
+
+
 
 
                 }else if(last_Command[0] == "RRQ"){
@@ -162,21 +168,84 @@ public class ListeningThread implements Runnable{
 
 
 
-        }else if(opcode == 4){   //*  got a ACK Packet from the Server, probably we should send a DATA Packet conataining (filebytes)\(filenames) and check what was the last_Command, to know
+
+
+
+        }else if(opcode == 4){   //*  got an ACK Packet from the Server, probably we should send a DATA Packet conataining (filebytes)\(filenames) and check what was the last_Command, to know
             //                                                                                                                                                                  what to do.
             //                          ------------->>  don't forget to print out that "command Completed" where needed.   <<--------------------------------
             if(last_Command[0] == "DISC"){
                 should_terminate = true;  // to terminate the while in the run()
 
+
+
+
             }else if(last_Command[0] == "WRQ"){
-                if(DATA_parts_to_Send.isEmpty()){  // we got an ACK for the last DATA we already sent
-                    System.out.println("WRQ " + this.curr_fileName[0] + " complete");
-                }else{
-                    // send the next part of data from the sending queue
+
+                if(DATA_parts_to_Send.isEmpty()){  // first or last times
+
+                    if(is_first){  // we got a ACK for the WRQ request we made and now we'll start the transferring process  <<--------------------
+                        //TODO: load the file to the Queue in parts of upto 512 bytes and send the first DATA Packet already.
+                        File f = new File(ClientDir + this.curr_fileName);  // already checked in the keyboard thread that file exists
+
+                        int finished_reading = 512;
+                        try{
+                            try(FileInputStream fis = new FileInputStream(f)){
+                                while(finished_reading >=512){
+                                    file_bytes = new byte[512]; // the byte buffer
+                                    try{
+                                        finished_reading = fis.read(file_bytes);   // this int let's us know if the packet is full or not.
+                                    }catch(FileNotFoundException e){}catch(IOException e){}
+
+                                    if(finished_reading >= 0){
+                                        DATA_parts_to_Send.add(Arrays.copyOfRange(file_bytes, 0, finished_reading));
+                                    }else if(finished_reading == -1){
+                                        DATA_parts_to_Send.add(new byte[0]);
+                                    }
+                                }   //  *now the DATA_parts_to_Send has all the data parts of the DATA Packets we'll need to send.
+                            }
+                        }catch(FileNotFoundException e){
+                            e.printStackTrace();
+                        }catch(IOException e){
+                            e.printStackTrace();
+                        }
+
+                        // * build and send the --> FIRST <-- DATA Packet:
+                        Block_Number_Count++;  // will be initialized back to 0 in the ACK where we send the last DATA Packet.
+                        byte[] dataPart = DATA_parts_to_Send.poll();
+                        if(dataPart == null){
+                            dataPart = new byte[0];
+                        }
+
+                        message_back_to_Server = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
+                        should_write_back = true;
+                        is_first = false;
 
 
-                    message_back_to_Server = getDataPacket(packet size, block number, data part);
-                    should_write_back = true;
+
+                    }else{  // we got an ACK for the last DATA we already sent  <<--------------------
+
+                        System.out.println("WRQ " + this.curr_fileName[0] + " complete");
+                        Block_Number_Count = 0;
+                        is_first = true;  // reseting for the next WRQ command
+                        should_write_back = false;
+
+                    }
+
+
+
+                }else{  //* send the next part of data from the sending queue
+                        // if there is something to send
+                        // * Build another DATA Packet
+                        Block_Number_Count++;  // will be initialized back to 0 in the ACK where we send the last DATA Packet.
+                        byte[] dataPart = DATA_parts_to_Send.poll();
+                        if(dataPart == null){
+                            dataPart = new byte[0];
+                        }
+
+                        message_back_to_Server = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
+                        should_write_back = true;                                                        //TODO:  check if I set all of the should_write_back correctly everywhere.
+                    
                 }
 
 
@@ -184,21 +253,21 @@ public class ListeningThread implements Runnable{
 
 
 
-
-            }else if(last_Command[0] == "RRQ"){  //! not needed because in RRQ's case, the client doesn't get any ACK's when RRQ's the command.
-
-            }else if(last_Command[0] == ""){
-                //
-
-
-
-
-
-
-
+            }else if(last_Command[0] == "LOGRQ"){
+                // no need to do anything, maybe if needed later on the client side, change a logged_in boolean to true.
+            }else if(last_Command[0] == "DELRQ"){
+                // no need to do anything, maybe if something is needed to be done on the client side, then do it. but BCAST is already sent to Clients after this, or Error to this Client.
             }
 
-            // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
+
+
+
+
+
+
+
+
+
 
 
 
@@ -218,26 +287,20 @@ public class ListeningThread implements Runnable{
             System.out.println("Error " + ErrC);  // printed only this, you said that you only check the error code and the msg is for us.
 
 
-
             // and do stuff that needs to be done:
-
-            if(last_Command[0] == "RRQ"){
+            if((last_Command[0] == "RRQ") && (ErrC == 1)){
                 // delete the file we created
                 File f = new File(ClientDir + this.curr_fileName[0]);
                 f.delete();
-            }else if(last_Command[0] == "DELRQ"){
+            }else if((last_Command[0] == "DELRQ") && (ErrC == 1)){
                 // only the print above
-            }else if(last_Command[0] == "WRQ"){
-                // 
-            }else if(last_Command[0] == ""){
-                //
-            }
-
-
-            // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
-
-
-
+            }else if((last_Command[0] == "WRQ") && (ErrC == 5)){
+                // only the print above
+            }else if((last_Command[0] == "LOGRQ") && (ErrC == 6)){ // user not logged in and some op code received
+                // only the print above
+            }else if((last_Command[0] == "LOGRQ") && (ErrC == 7)){ // user already logged in
+                // only the print above
+            }  // also for error code: 0, 4, we just use the print above.
 
 
 
@@ -250,7 +313,6 @@ public class ListeningThread implements Runnable{
             // print the BCAST msg in this client BCAST add/del filename
 
             // get the filename that was added/deleted and use it for the prints in the next lines
-
             String packet_fileName = new String(message, 3, (message.length-3), StandardCharsets.UTF_8);  //  converting a byte[] to String
 
             if(message[2] == (byte)1){  // added
@@ -261,34 +323,7 @@ public class ListeningThread implements Runnable{
 
             should_write_back = false;
 
-
-
-
-
-
-
-
-
-
-            
-        }else if(opcode == ){   //*  got a X Packet from the Server
-            // print the BCAST msg in this client BCAST add/del filename
-
-
-
-
-
-
-
-
-
-
-
-
-            // also indicate if we should_write_back=true and set the message_back_to_Server, only if we want to send something back to the Server.
         }
-        //? similar to the process of the Server, copy from there... for sending and receiving copy the fields there as well, it's in the SAME CONCEPT !!!!  <<=============================
-
 
 
 
@@ -303,7 +338,9 @@ public class ListeningThread implements Runnable{
                 should_write_back = false; // set it back
             } catch (IOException e) { e.printStackTrace(); }
         }
-    }
+
+
+    }  //*      END OF Client_process
 
 
 

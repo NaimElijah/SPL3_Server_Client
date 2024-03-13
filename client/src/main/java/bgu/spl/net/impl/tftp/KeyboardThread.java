@@ -17,7 +17,7 @@ public class KeyboardThread implements Runnable{
 
     private Scanner s = new Scanner(System.in);
     private boolean should_Terminate = false;
-    private String ClientDir = ".\\";   //TODO:    remember to change it back to one \ for the linux assignment check.
+    private String ClientDir = ".\\";   //TODO:    remember to change it back to one \ for the linux assignment check, or use file.separator.
 
     private BufferedInputStream in;
     private BufferedOutputStream out;
@@ -152,6 +152,7 @@ public class KeyboardThread implements Runnable{
 
             if(fExists){
                 last_Command[0] = UserInput_split[0];
+                this.curr_fileName[0] = UserInput_split[1]; // save the file name for later use.(in the Listening Thread). //TODO: see where else should I save the file name.
 
                 byte[] op_2bytes = get2ByteArrFromShort((short)2);
                 byte[] fileName_bytes = UserInput_split[1].getBytes();
