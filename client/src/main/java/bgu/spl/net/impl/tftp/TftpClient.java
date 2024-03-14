@@ -12,11 +12,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TftpClient {
-    // <<---------------------------  continue,  there needs to 2 threads, one thread reads from the keyboard and sends the command, and the other thread listens to the socket and handles
-    //                                                                                                    what's been sent to the specific current client, he might send too(his response).
+
     public static void main(String[] args) throws IOException{
 
-        // boolean should_Terminate = false;  // see if a boolean like this is needed here
         TftpEncoderDecoder encdec = new TftpEncoderDecoder();
 
         if (args.length == 0){
@@ -30,7 +28,6 @@ public class TftpClient {
         Socket Servers_socket = new Socket(); // just for initialization
         try{
             Servers_socket = new Socket(args[0], Integer.parseInt(args[1]));  //  creating the socket of the server that we'll READ FROM && WRITE TO.
-            // Servers_socket = new Socket("localhost", 7777);  //  creating the socket of the server that we'll READ FROM && WRITE TO. // TEST
         }catch(NumberFormatException e){
             e.printStackTrace();
         }
@@ -40,12 +37,10 @@ public class TftpClient {
         Thread listeningThread = new Thread(to_listen, "Listening Thread");
 
         listeningThread.start();  //* starting the Listening Thread   <<-------------------
-        
         // Keyboard Thread is started by the Listening Thread
 
 
 
-        // //? maybe we'll need a while loop here to keep it running   <<--------------------------------------- or maybe just use .join()
         // try {
         //     listeningThread.join();
         // } catch (InterruptedException e) {

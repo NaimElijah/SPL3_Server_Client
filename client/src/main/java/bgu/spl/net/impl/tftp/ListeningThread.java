@@ -32,7 +32,7 @@ public class ListeningThread implements Runnable{
     private volatile String[] last_Command;  // to save a shared info of the last command for both threads.
     private volatile String[] curr_fileName;  // to save a shared info of the last command for both threads.
 
-    private String ClientDir = ".\\";   //TODO:    remember to change it back to one \ for the linux assignment check.
+    private String ClientDir = "." + File.separator;   //TODO:    remember to change it back to one \ for the linux assignment check.
 
     private byte[] file_bytes; // byte BUFFER WHEN CLIENT READS FROM HIS Files
     private ConcurrentLinkedQueue<byte[]> DATA_parts_to_Send = new ConcurrentLinkedQueue<byte[]>();  //? <<---------------- for WRITING to the server.
@@ -78,13 +78,13 @@ public class ListeningThread implements Runnable{
             ex.printStackTrace();
         }
 
-        keyboardThread.interrupt();  //  if we got a ACK after we made a DISC we'll change the should_terminate to true
+        // keyboardThread.interrupt();  //  if we got a ACK after we made a DISC we'll change the should_terminate to true   // already stops himself when getting a DISC.
 
-        // try{
-        //     this.Servers_Socket.close();  // close the socket because this will end
-        // }catch(IOException e){
-        //     e.printStackTrace();
-        // }
+        try{
+            this.Servers_Socket.close();  // close the socket.
+        }catch(IOException e){
+            e.printStackTrace();
+        }
 
     }
 
@@ -106,12 +106,26 @@ public class ListeningThread implements Runnable{
         byte[] message_back_to_Server = new byte[0];  // just for initialization, set it up according to what we want to send back to the server if want to send something back to the Server.
 
 
+        // System.out.println("current Packet received in Client is below:");  //!  TESTING !!
+        // for(byte b : message){
+        //     System.out.print(b + ",");  //!  TESTING !!
+        // }
+        // System.out.println("end of the current Packet received in Client");  //!  TESTING !!
 
 
-        if(opcode == 3){   //*  got a DATA Packet from the Server,  ------------->>  don't forget to print out that "command Completed" where needed.
+
+
+
+
+
+
+
+
+        if(opcode == 3){   //*  got a DATA Packet from the Server  
 
             // get the DATA byte[]:
-            byte[] the_data = Arrays.copyOfRange(message, 6, message.length);  //!  6 > 2   check why 2 bytes were given instead of 6  <<===============================  resolve this.
+
+            byte[] the_data = Arrays.copyOfRange(message, 6, message.length);
 
             if(the_data.length >= 512){
                 // we got a full DATA Packet, add the DATA byte[] to the buffer field
@@ -122,19 +136,31 @@ public class ListeningThread implements Runnable{
 
                 // check if the DATA is for DIRQ\RRQ according to the last_Command:
 
-
-                if(last_Command[0] == "DIRQ"){
+                if(last_Command[0].equals("DIRQ")){
                     // turn the Data_ReceivedTillNow_Buffer into a String and print the String without the 0's
-                    String string_form_with_zeros = new String(Data_ReceivedTillNow_Buffer, 0, Data_ReceivedTillNow_Buffer.length, StandardCharsets.UTF_8);
-                    String[] to_print = string_form_with_zeros.split("0");
-                    for(String filename : to_print){
-                        System.out.println(filename);
+
+                    int start = 0;
+                    int end = 0;
+                    byte[] for_length = new byte[0];
+                    for(int i=0; i<Data_ReceivedTillNow_Buffer.length; i++){
+                        if((Data_ReceivedTillNow_Buffer[i] == (byte)0) || (i == (Data_ReceivedTillNow_Buffer.length-1))){
+                            end = i;
+                            if(i == (Data_ReceivedTillNow_Buffer.length-1)){
+                                end++;
+                            }
+                            for_length = Arrays.copyOfRange(Data_ReceivedTillNow_Buffer, start, end);
+                            String string_to_print = new String(for_length, 0, for_length.length, StandardCharsets.UTF_8);
+                            System.out.println(string_to_print);
+                            start = i+1;
+                        }
                     }
 
 
 
 
-                }else if(last_Command[0] == "RRQ"){
+
+
+                }else if(last_Command[0].equals("RRQ")){
                     
                     try{
                         //create file with the Name_of_File_Created name inside the Dir:
@@ -179,20 +205,25 @@ public class ListeningThread implements Runnable{
 
         }else if(opcode == 4){   //*  got an ACK Packet from the Server, probably we should send a DATA Packet conataining (filebytes)\(filenames) and check what was the last_Command, to know
             //                                                                                                                                                                  what to do.
-            //                          ------------->>  don't forget to print out that "command Completed" where needed.   <<--------------------------------
-            if(last_Command[0] == "DISC"){
+
+            byte[] block_num_2bytes = new byte[2];
+            block_num_2bytes[0] = message[2];
+            block_num_2bytes[1] = message[3];
+            System.out.println("ACK " + getShortFrom2ByteArr(block_num_2bytes));  // printing the ACK number.
+
+            if(last_Command[0].equals("DISC")){
                 should_terminate = true;  // to terminate the while in the run()
 
 
 
 
-            }else if(last_Command[0] == "WRQ"){
+            }else if(last_Command[0].equals("WRQ")){
 
                 if(DATA_parts_to_Send.isEmpty()){  // first or last times
 
                     if(is_first){  // we got a ACK for the WRQ request we made and now we'll start the transferring process  <<--------------------
-                        //TODO: load the file to the Queue in parts of upto 512 bytes and send the first DATA Packet already.
-                        File f = new File(ClientDir + this.curr_fileName);  // already checked in the keyboard thread that file exists
+
+                        File f = new File(ClientDir + this.curr_fileName[0]);  // already checked in the keyboard thread that file exists
 
                         int finished_reading = 512;
                         try{
@@ -250,7 +281,7 @@ public class ListeningThread implements Runnable{
                         }
 
                         message_back_to_Server = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
-                        should_write_back = true;                                                        //TODO:  check if I set all of the should_write_back correctly everywhere.
+                        should_write_back = true;
                     
                 }
 
@@ -259,9 +290,9 @@ public class ListeningThread implements Runnable{
 
 
 
-            }else if(last_Command[0] == "LOGRQ"){
+            }else if(last_Command[0].equals("LOGRQ")){
                 // no need to do anything, maybe if needed later on the client side, change a logged_in boolean to true.
-            }else if(last_Command[0] == "DELRQ"){
+            }else if(last_Command[0].equals("DELRQ")){
                 // no need to do anything, maybe if something is needed to be done on the client side, then do it. but BCAST is already sent to Clients after this, or Error to this Client.
             }
 
@@ -283,28 +314,31 @@ public class ListeningThread implements Runnable{
 
 
             
-        }else if(opcode == 5){   //*  got a ERROR Packet from the Server
+        }else if(opcode == 5){   //*  got an ERROR Packet from the Server
 
             // print the ERROR msg in this client:
             byte[] errC2BytesArr = new byte[2];
             errC2BytesArr[0] = message[2];
             errC2BytesArr[1] = message[3];
             short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
-            System.out.println("Error " + ErrC);  // printed only this, you said that you only check the error code and the msg is for us.
+            String errMsg = new String(message, 4, (message.length-4), StandardCharsets.UTF_8);  //  converting a byte[] to String
+            System.out.println("Error " + ErrC + " " + errMsg);  // you said that you only check the error code and the msg is for us.
 
 
             // and do stuff that needs to be done:
-            if((last_Command[0] == "RRQ") && (ErrC == 1)){
+            if((last_Command[0].equals("RRQ")) && (ErrC == 1)){
                 // delete the file we created
                 File f = new File(ClientDir + this.curr_fileName[0]);
                 f.delete();
-            }else if((last_Command[0] == "DELRQ") && (ErrC == 1)){
+            }else if(last_Command[0].equals("DISC")){
+                should_terminate = true; //  it's written in the assignment to close even though he's not logged in
+            }else if((last_Command[0].equals("DELRQ")) && (ErrC == 1)){
                 // only the print above
-            }else if((last_Command[0] == "WRQ") && (ErrC == 5)){
+            }else if((last_Command[0].equals("WRQ")) && (ErrC == 5)){
                 // only the print above
-            }else if((last_Command[0] == "LOGRQ") && (ErrC == 6)){ // user not logged in and some op code received
+            }else if((last_Command[0].equals("LOGRQ")) && (ErrC == 6)){ // user not logged in and some op code received
                 // only the print above
-            }else if((last_Command[0] == "LOGRQ") && (ErrC == 7)){ // user already logged in
+            }else if((last_Command[0].equals("LOGRQ")) && (ErrC == 7)){ // user already logged in
                 // only the print above
             }  // also for error code: 0, 4, we just use the print above.
 
@@ -326,8 +360,6 @@ public class ListeningThread implements Runnable{
             }else{   // message[2] == (byte)0  // deleted
                 System.out.println("BCAST del " + packet_fileName);
             }
-
-            should_write_back = false;
 
         }
 

@@ -1,8 +1,5 @@
 C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\api\MessagingProtocol.java
-C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\echo\EchoProtocol.java
-C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\echo\EchoClient.java
 C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\tftp\TftpEncoderDecoder.java
-C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\echo\LineMessageEncoderDecoder.java
 C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\tftp\ListeningThread.java
 C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\api\MessageEncoderDecoder.java
 C:\Users\naimo\VSCodeProjects\SPL3_Server_Client\client\src\main\java\bgu\spl\net\impl\tftp\KeyboardThread.java

@@ -17,7 +17,7 @@ public class KeyboardThread implements Runnable{
 
     private Scanner s = new Scanner(System.in);
     private boolean should_Terminate = false;
-    private String ClientDir = ".\\";   //TODO:    remember to change it back to one \ for the linux assignment check, or use file.separator.
+    private String ClientDir = "." + File.separator;   //TODO:    remember to change it back to one \ for the linux assignment check, or use file.separator.   <<=================   <<=======================
 
     private BufferedInputStream in;
     private BufferedOutputStream out;
@@ -73,9 +73,8 @@ public class KeyboardThread implements Runnable{
 
     private void Send_to_Server(String UserInput){
 
-        String[] UserInput_split = UserInput.split(" ");
-
-        System.out.println("UserInput_split[0] ----> " + UserInput_split[0]);  //! TEST !!!
+        String[] UserInput_split = UserInput.split(" ", 2);
+        // --->  "NOTE: ”lehem hvita” is one filename with space char in it (this is ok)."  <--- (written in the assignment assignment).
 
         byte[] command_packet = new byte[2];  // build this command to be a packet according to what we got.
 
@@ -120,7 +119,7 @@ public class KeyboardThread implements Runnable{
             boolean fExists = f.exists();
 
             if(fExists){
-                // System.out.println(error message that the client already has this file); //TODO: see if we need to print in the assignment.
+                System.out.println("file already exists");
             }else{
                 last_Command[0] = UserInput_split[0];
 
@@ -154,7 +153,7 @@ public class KeyboardThread implements Runnable{
 
             if(fExists){
                 last_Command[0] = UserInput_split[0];
-                this.curr_fileName[0] = UserInput_split[1]; // save the file name for later use.(in the Listening Thread). //TODO: see where else should I save the file name.
+                this.curr_fileName[0] = UserInput_split[1]; // save the file name for later use.(in the Listening Thread).
 
                 byte[] op_2bytes = get2ByteArrFromShort((short)2);
                 byte[] fileName_bytes = UserInput_split[1].getBytes();
@@ -190,6 +189,7 @@ public class KeyboardThread implements Runnable{
             byte[] op_2bytes = get2ByteArrFromShort((short)10);
             command_packet = op_2bytes;  // build done
 
+            should_Terminate = true;
         }
 
 
@@ -198,11 +198,6 @@ public class KeyboardThread implements Runnable{
 
         if((command_packet != null) && (command_packet.length > 0)){     //  about to send to the Server.
                 try{
-                    for(byte b : command_packet){
-                        System.out.println(b);  //!  TESTING !!
-                    }
-                    // System.out.println(command_packet.toString());  //!  TESTING !!
-                    System.out.println("current command length -----> " + command_packet.length);  //!  TESTING !!
                     out.write(command_packet);
                     out.flush();
                 }catch(IOException e){
@@ -236,12 +231,11 @@ public class KeyboardThread implements Runnable{
     }
 
     public short getShortFrom2ByteArr(byte[] byte2arr){
-        // return (short)(((short) byte2arr[0]) << 8 | (short) (byte2arr[1]) & 0x00ff);    // hedi's 
         return ((short)(((short)(byte2arr[0] & 0xFF)) << 8 | (short)(byte2arr[1] & 0xFF)));
-    }  //                                                                                       <<------------  conversions you gave us
+    }
 
     public byte[] get2ByteArrFromShort(short shortNum){
-        return (new byte[]{(byte)(shortNum >> 8), (byte)(shortNum & 0xff)});  // might be without the "="
+        return (new byte[]{(byte)(shortNum >> 8), (byte)(shortNum & 0xff)});
     }
 
     

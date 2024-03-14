@@ -15,6 +15,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
     private byte first_op_byte;
     private byte[] op_C_bytesArr = new byte[2];
     private short small_op_code;
+    private boolean end = true;
 
     private byte first_Size_byte;
     private byte[] Size_bytesArr = new byte[2];
@@ -23,7 +24,6 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
     @Override
     public byte[] decodeNextByte(byte nextByte) {     // if I'm using \n it might need to be \r because it's Windows
-        //TODO: here utf8 is a bit different than linux's, remember to check on the lab computers. for there and for the assignment check, change the \r(windows) back to \n(linux).
 
         if(ByteCounter == 0){
             first_op_byte = nextByte;
@@ -32,11 +32,9 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
             op_C_bytesArr[1] = nextByte;
             small_op_code = getShortFrom2ByteArr(op_C_bytesArr);
             
-            if(small_op_code == 3 || small_op_code == 4){ // set to end with null terminator, no ending byte,  //TODO: hedi said that here we should do it with the packet's length
+            if(small_op_code == 3 || small_op_code == 4){ // ending with the packet's length
                 setMode(0);
-                if(small_op_code == 4){
-                    Packet_length = 3;
-                }
+                Packet_length = 3;  // for ACK and for until it reaches the sizebytes and changes the size of the DATA accordingly.
             }else if(small_op_code == 7 || small_op_code == 8 || small_op_code == 1 || small_op_code == 2 || small_op_code == 9 || small_op_code == 5) { // set to end with 0 byte
                 setMode(1);
             }else if(small_op_code == 6 || small_op_code == 10){ // end, becasue this op code means that this packet has only an op code
@@ -65,6 +63,16 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
 
 
+        if(((small_op_code == 5) || (small_op_code == 9)) && (ByteCounter == 2) && (nextByte == (byte)0)){ // bcast, error
+            end = false;
+        }
+
+        if(ByteCounter == 3){  // if it goes further, bcast, error
+            end = true;
+        }
+
+
+
 
 
         if(mode == 0 && (ByteCounter >= Packet_length)){  //  this is when we end it according to the length.
@@ -79,7 +87,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
             small_op_code = 0;
             return bytesRes;
 
-        }else if(mode == 1 && nextByte == (byte)0){  // this is when it ends with a 0 byte
+        }else if((mode == 1) && (nextByte == (byte)0) && (end)){  // this is when it ends with a 0 byte
             byte[] bytesRes = bytes.clone();
             this.bytes = new byte[2];
             len = 0;

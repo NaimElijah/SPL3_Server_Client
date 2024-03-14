@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.sound.midi.Soundbank;
+
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
@@ -24,9 +26,9 @@ import bgu.spl.net.srv.Connections;
 public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     private boolean shouldTerminate = false;
-    private String ServerDir = ".\\Files\\";   //TODO:  maybe change to singular \'s for the assignment check that will probably happen on linux.   <<-------------------------------
+    private String ServerDir = "." + File.separator + "Files" + File.separator;   //TODO:  maybe change to singular \'s for the assignment check that will probably happen on linux.   <<-------------------------------
     private int connectionId;
-    private String username;
+    private String username = "";
     private Connections<byte[]> connections;  //  this is our way to reach the Connection Handlers's Handler --> ConnectionsImpl.(for send, etc.)     <<--------------------------
     private byte[] processed_message;
     private boolean is_first = true;
@@ -54,14 +56,17 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
+
+
+
     @Override
     public void process(byte[] message){
 
-        System.out.println("current Packet received is below:");  //!  TESTING !!
-        for(byte b : message){
-            System.out.println(b);  //!  TESTING !!
-        }
-        System.out.println("end of the current Packet received");  //!  TESTING !!
+        // System.out.println("current Packet received in Server is below:");  //!  TESTING !!
+        // for(byte b : message){
+        //     System.out.print(b + ",");  //!  TESTING !!
+        // }
+        // System.out.println("end of the current Packet received in Server");  //!  TESTING !!
         
         byte[] opc2BytesArr = new byte[2];
         opc2BytesArr[0] = message[0];
@@ -94,8 +99,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
             boolean fExists = f.exists();
 
             if(fExists){
-
-                // connections.send(this.connectionId, getACKPacket(0));   // see if we need to send an ACK first. seems that no.
 
                 int finished_reading = 512;
                 try{
@@ -131,8 +134,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
                 processed_message = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
 
-                // hedi said that we can send a maximum of 512 bytes at one time. So if it's bigger we need to split them and also send the block
-                // number with each part of the data.
             }else{
                 processed_message = getErrPacket(1, "File not found");
             }
@@ -229,18 +230,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
             if(packet_block_num == 0){
 
-                //! DON'T NEED THIS SECTION because the Server won't get this block number=0, only on the Client Side.{
-                // for the cases where we just get a confirmation about other stuff like LOGRQ, WRQ, DELRQ, DISC...:
-                // after LOGRQ, we're in Client, nothing, just confirmation
-                // after DELRQ, we're in Client, nothing, just confirmation
-                // after DISC, we're in Client, maybe change a boolean field I'll make here in the protocol to indicate that disconnected and then the Client will know to shutdown.
-                //TODO: DON'T NEED THIS SECTION because the Server won't get this block number=0, only on the Client Side.
-                // after WRQ, we're in the Client:
-                // we need to send DATA to the Server, check how to send to the Server, maybe kind of the same way that we send to a Client, maybe.
-                //! DON'T NEED THIS SECTION because the Server won't get this block number=0, only on the Client Side.}
-
-
-
+                //! DON'T NEED THIS SECTION because the Server won't get this block number=0, only on the Client Side, as Confirmation.
+        
             }else{ //* after RRQ, DIRQ, we're in Server, we got the number of the DATA block the other received, now send the next DATA if there is more DATA to send.  <<=========== SERVER SIDE.
                 if(!(DATA_parts_to_Send.isEmpty())){ // if there is something to send, if there isn't more to send, the other side will notice that before us when he get's size below 512.
                 //                                                                                                                                                 in the DATA handling if.
@@ -271,29 +262,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        }else if(opcode == 5){  //! ERROR scenario,  Client gets this, Server doesn't get Error   <<===================================================================  ** BOOKMARK 5 **
-            
-            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code{
-            // byte[] errC2BytesArr = new byte[2];
-            // errC2BytesArr[0] = message[2];
-            // errC2BytesArr[1] = message[3];
-            // short ErrC = getShortFrom2ByteArr(errC2BytesArr);  // short ErrorCode
-            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code
-            // String err_msg = new String(message, 4, (message.length-4), StandardCharsets.UTF_8);  //  converting a byte[] to String
-            // System.out.println("Error " + ErrC + " " + err_msg);
-
-            // //?  Server doesn't get an ERROR but did this so he won't do anything for now but: (below line)
-            // //TODO:  MAYBE DELETE THIS,  the Server doesn't get ERROR, maybe we should also Delete this if so it will go to the Section where unknown op code}
-
-
-
-
-
-
-
-
-
-
         }else if(opcode == 6){  //* handle DIRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 6 **
 
             List<byte[]> FilesInDirInBytes = new ArrayList<byte[]>();
@@ -313,7 +281,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 zero_byte[0] = (byte)0;
                 all_bytes_with0Between_toSend = getCombinedByteArray(all_bytes_with0Between_toSend, zero_byte);
             }
-            all_bytes_with0Between_toSend = Arrays.copyOfRange(all_bytes_with0Between_toSend, 0, (all_bytes_with0Between_toSend.length-1));  // getting rid of the ending 0 byte
+            
+            if(all_bytes_with0Between_toSend.length > 0){
+                all_bytes_with0Between_toSend = Arrays.copyOfRange(all_bytes_with0Between_toSend, 0, (all_bytes_with0Between_toSend.length-1));  // getting rid of the ending 0 byte
+            }
             //  now got all of the bytes to send together in one byte[].
 
 
@@ -336,13 +307,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 dataPart = new byte[0];
             }
 
-            System.out.println("current FIRST DATA Packet in DIRQ is below:");  //!  TESTING !!
-            for(byte b : getDataPacket(dataPart.length, Block_Number_Count, dataPart)){
-                System.out.println(b);  //!  TESTING !!               <<===============================================  continue solving !!!!
-            }
-            System.out.println("end of the current FIRST DATA Packet in the DIRQ");  //!  TESTING !!
-
             processed_message = getDataPacket(dataPart.length, Block_Number_Count, dataPart);
+
+
 
 
 
@@ -358,7 +325,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                 String packet_username = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);  //  converting a byte[] to String
                 boolean valid = true;  // check if the username is valid
                 for(ConnectionHandler<byte[]> handler : this.connections.getConnectedClients().values()){
-                    if(handler.getProtocol().getUsername() == packet_username){
+                    if(handler.getProtocol().getUsername().equals(packet_username)){
                         valid = false;
                         break;
                     }
@@ -370,11 +337,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
                     processed_message = getACKPacket(0); // ACK to the Client that we received
                     is_first = false;
                 }else{
-                    processed_message = getErrPacket(7, "Username already connected");
+                    processed_message = getErrPacket(7, "User already logged in");
                 }
             }else{
-                processed_message = getErrPacket(0, "Already logged in");  //  hedi said in the forum that we can do this if a client uses LOGRQ again when he's already logged in.
-            }   //                                                                     check again which error type to return.
+                processed_message = getErrPacket(7, "You've Already logged in"); // hedi said in the forum that we can do this if a client uses LOGRQ again when he's already logged in.
+            }
 
 
 
@@ -389,8 +356,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
             if (fExists){
                 // delete that file and send a BCAST processed_message
                 if(f.delete()){
+                    connections.send(this.connectionId, getACKPacket(0));  // as in the example we need to send ACK 0 first
                     processed_message = getBCASTPacket(0, packet_fileName);  // notify all logged in users about the change
                     isBcast = true;
+
                 }else{
                     processed_message = getErrPacket(0, "Inner Deletion Fail");
                 }
@@ -402,13 +371,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
         // 9 BCAST is only received by the client.
         }else if(opcode == 10){  //* handle DISC scenario,  Server got this   <<===================================================================  ** BOOKMARK 10 **
             processed_message = getACKPacket(0);  // when the client gets this ACK he will close the socket and exit the client program, I think he will also just interrupt
-            connections.disconnect(connectionId);                                                  // the threads maybe or just make a boolean in the run()'s while to exit while.
+            connections.send(this.connectionId, processed_message);
             shouldTerminate = true;
+            connections.disconnect(connectionId);
 
 
         }else{  //  unknown op code inserted
             processed_message = getErrPacket(4, "Unknown Op Code");
         }
+
+
 
 
 
