@@ -78,7 +78,7 @@ public class ListeningThread implements Runnable{
             ex.printStackTrace();
         }
 
-        // keyboardThread.interrupt();  //  if we got a ACK after we made a DISC we'll change the should_terminate to true   // already stops himself when getting a DISC.
+        // keyboardThread.interrupt();  //  if we got an ACK after we made a DISC we'll change the should_terminate to true   // already stops himself when getting a DISC.
 
         try{
             this.Servers_Socket.close();  // close the socket.

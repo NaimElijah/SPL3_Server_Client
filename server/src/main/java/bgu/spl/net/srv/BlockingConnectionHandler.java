@@ -51,9 +51,9 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
 
 
-
+    
     @Override
-    public void send(T msg) {  // send to the client  <<-----------------------
+    public synchronized void send(T msg) {  // send to the client  <<-----------------------
 
         try{
             if(msg != null){

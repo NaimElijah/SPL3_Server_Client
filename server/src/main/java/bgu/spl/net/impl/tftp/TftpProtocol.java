@@ -26,7 +26,7 @@ import bgu.spl.net.srv.Connections;
 public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     private boolean shouldTerminate = false;
-    private String ServerDir = "." + File.separator + "Files" + File.separator;   //TODO:  maybe change to singular \'s for the assignment check that will probably happen on linux.   <<-------------------------------
+    private String ServerDir = "." + File.separator + "Files" + File.separator;
     private int connectionId;
     private String username = "";
     private Connections<byte[]> connections;  //  this is our way to reach the Connection Handlers's Handler --> ConnectionsImpl.(for send, etc.)     <<--------------------------
@@ -61,12 +61,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
     @Override
     public void process(byte[] message){
-
-        // System.out.println("current Packet received in Server is below:");  //!  TESTING !!
-        // for(byte b : message){
-        //     System.out.print(b + ",");  //!  TESTING !!
-        // }
-        // System.out.println("end of the current Packet received in Server");  //!  TESTING !!
         
         byte[] opc2BytesArr = new byte[2];
         opc2BytesArr[0] = message[0];
@@ -261,7 +255,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-
+        //!    sync the reading of file names from the folder.
         }else if(opcode == 6){  //* handle DIRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 6 **
 
             List<byte[]> FilesInDirInBytes = new ArrayList<byte[]>();
@@ -346,7 +340,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-
+        //! sync on the deletion.
         }else if(opcode == 8){  //* handle DELRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 8 **
             String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
@@ -488,7 +482,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
     public short getShortFrom2ByteArr(byte[] byte2arr){
-        // return (short)(((short) byte2arr[0]) << 8 | (short) (byte2arr[1]) & 0x00ff);    // hedi's 
         return ((short)(((short)(byte2arr[0] & 0xFF)) << 8 | (short)(byte2arr[1] & 0xFF)));
     }  //                                                                                       <<------------  conversions you gave us
 

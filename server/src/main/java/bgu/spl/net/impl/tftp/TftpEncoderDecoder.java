@@ -144,19 +144,5 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
 
 
-
-    // private byte[] popByte(){      //     <-----------  copied from echo
-    //     //notice that we explicitly requesting that the string will be decoded from UTF-8  //     <-----------  copied from echo
-    //     //this is not actually required as it is the default encoding in java.             //     <-----------  copied from echo
-    //     String result = new String(bytes, 0, len, StandardCharsets.UTF_8);          //     <-----------  copied from echo
-
-    //     byte[] resultByteArr = new byte[];  //   <<========================  experimenting........
-
-    //     len = 0;        //     <-----------  copied from echo
-    //     return resultByteArr; //     <-----------  experimenting....  maybe use a copy constructor of byte[]
-    // }                  //     <-----------  copied from echo
-
-
-
 }
 
