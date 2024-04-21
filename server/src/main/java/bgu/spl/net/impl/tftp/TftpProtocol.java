@@ -255,7 +255,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        //!    sync the reading of file names from the folder.     <<==========================
+        //!    sync the reading of file names from the folder.     <<=========================
         }else if(opcode == 6){  //* handle DIRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 6 **
 
             List<byte[]> FilesInDirInBytes = new ArrayList<byte[]>();
