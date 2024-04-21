@@ -340,7 +340,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        //! sync on the deletion.     <<==========================
+        //! sync on the deletion.     <<===========================
         }else if(opcode == 8){  //* handle DELRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 8 **
             String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
