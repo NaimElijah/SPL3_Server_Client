@@ -255,7 +255,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        //!    sync the reading of file names from the folder.
+        //!    sync the reading of file names from the folder.     <<==========================
         }else if(opcode == 6){  //* handle DIRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 6 **
 
             List<byte[]> FilesInDirInBytes = new ArrayList<byte[]>();
@@ -340,7 +340,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>{
 
 
 
-        //! sync on the deletion.
+        //! sync on the deletion.     <<==========================
         }else if(opcode == 8){  //* handle DELRQ scenario,  Server got this   <<===================================================================  ** BOOKMARK 8 **
             String packet_fileName = new String(message, 2, (message.length-2), StandardCharsets.UTF_8);
             // see if this file name exists in Files
